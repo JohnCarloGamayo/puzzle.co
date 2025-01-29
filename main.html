@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Image</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            background-color: #ddd;
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .puzzle-piece {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #4caf50;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .empty {
+            background-color: transparent;
+            cursor: default;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .modal-content button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #45a049;
+        }
+		img{
+			height: 310px;
+		}
+		.image {
+			margin-right: 40px;
+			border: 10px solid gray; 
+			border-radius: 8px; 
+		}
+		.hint{
+			position: absolute;
+			top: 100px;
+		}
+    </style>
+</head>
+<body>
+	<img class="image" src="image.png">
+    <div class="puzzle-container" id="puzzle"></div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <p>Congratulations! You solved the puzzle!</p>
+            <button onclick="restartGame()">Restart</button>
+        </div>
+    </div>
+<script>
+        const puzzle = document.getElementById('puzzle');
+        const modal = document.getElementById('modal');
+        const hintDisplay = document.getElementById('hint');
+
+        const tileData = [
+            { text: "1", img: "image1.png" },
+            { text: "2", img: "image2.png" },
+            { text: "3", img: "image3.png" },
+            { text: "4", img: "image4.png" },
+            { text: "5", img: "image5.png" },
+            { text: "6", img: "image6.png" },
+            { text: "7", img: "image7.png" },
+            { text: "8", img: "image8.png" },
+            { text: "" } // Empty tile
+        ];
+
+        function shuffleTiles() {
+            const shuffled = [...tileData];
+            shuffled.sort(() => Math.random() - 0.5);
+
+            puzzle.innerHTML = "";
+            shuffled.forEach((tile, index) => {
+                const tileDiv = document.createElement('div');
+                tileDiv.classList.add('puzzle-piece');
+                tileDiv.dataset.pos = index;
+
+                if (tile.text === "") {
+                    tileDiv.classList.add('empty');
+                } else if (tile.img) {
+                    const img = document.createElement('img');
+                    img.src = tile.img;
+                    img.alt = `Tile ${tile.text}`;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    tileDiv.appendChild(img);
+                } else {
+                    tileDiv.textContent = tile.text;
+                }
+
+                puzzle.appendChild(tileDiv);
+            });
+        }
+
+        function isValidMove(emptyPos, tilePos) {
+            const gridSize = 3;
+            const rowDiff = Math.abs(Math.floor(emptyPos / gridSize) - Math.floor(tilePos / gridSize));
+            const colDiff = Math.abs((emptyPos % gridSize) - (tilePos % gridSize));
+            return rowDiff + colDiff === 1; // Ensure it's exactly one move away
+        }
+
+        function checkWin() {
+            const currentOrder = Array.from(document.querySelectorAll('.puzzle-piece')).map(tile => {
+                const img = tile.querySelector('img');
+                return img ? img.src.split('/').pop().replace('.png', '') : tile.textContent.trim();
+            });
+            const winOrder = ["1", "2", "3", "4", "5", "6", "7", "8", ""];
+            return currentOrder.every((value, index) => value === winOrder[index]);
+        }
+
+        function giveHint() {
+            const tiles = Array.from(document.querySelectorAll('.puzzle-piece'));
+            const emptyTile = document.querySelector('.empty');
+            const emptyIndex = tiles.indexOf(emptyTile);
+            const possibleMoves = [];
+
+            tiles.forEach((tile, index) => {
+                if (isValidMove(emptyIndex, index)) {
+                    possibleMoves.push(index);
+                }
+            });
+
+            if (possibleMoves.length > 0) {
+                const nextMoveIndex = possibleMoves[0];
+                hintDisplay.textContent = `Try moving the piece at position ${nextMoveIndex + 1} into the empty space.`;
+            }
+        }
+
+        function restartGame() {
+            modal.style.display = 'none';
+            shuffleTiles();
+            giveHint();
+        }
+
+        puzzle.addEventListener('click', (e) => {
+            const clickedTile = e.target.closest('.puzzle-piece');
+            if (!clickedTile || clickedTile.classList.contains('empty')) {
+                return;
+            }
+
+            const tiles = Array.from(document.querySelectorAll('.puzzle-piece'));
+            const emptyTile = document.querySelector('.empty');
+
+            const clickedIndex = tiles.indexOf(clickedTile);
+            const emptyIndex = tiles.indexOf(emptyTile);
+
+            if (isValidMove(emptyIndex, clickedIndex)) {
+                // Swap the empty tile and the clicked tile
+                emptyTile.innerHTML = clickedTile.innerHTML;
+                clickedTile.innerHTML = "";
+
+                emptyTile.classList.remove('empty');
+                clickedTile.classList.add('empty');
+
+                if (checkWin()) {
+                    modal.style.display = 'flex';
+                    hintDisplay.textContent = "Congratulations! You solved the puzzle!";
+                } else {
+                    giveHint();
+                }
+            }
+        });
+
+        // Initialize the game
+        shuffleTiles();
+        giveHint(); // Start with a hint
+    </script>
+</body>
+</html>
+
